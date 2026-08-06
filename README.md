@@ -118,7 +118,7 @@ Pulling the vault (`sdpd fetch` in the reference tooling) is what closes the loo
 
 The distinct thing about SDPD is that it treats an AI coding agent's tendency to *guess* as the primary risk to guard against — more so than a human's, because an agent will confidently fabricate a plausible-looking endpoint or payload shape rather than say "I don't know," and it will do it fast enough to be halfway through an implementation before anyone notices.
 
-Each consuming repository (frontend, backend, infra) carries a `CLAUDE.md` that scopes what its agent is allowed to decide on its own. (Not `.clauderules` — that's a convention from other tools; Claude Code specifically reads `CLAUDE.md`.)
+Each consuming repository (frontend, backend, infra, interfaces) carries a `CLAUDE.md` that scopes what its agent is allowed to decide on its own. (Not `.clauderules` — that's a convention from other tools; Claude Code specifically reads `CLAUDE.md`.)
 
 ```markdown
 # SDPD Contract Discipline
