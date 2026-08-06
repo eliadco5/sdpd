@@ -7,8 +7,8 @@
 //
 // Usage: node scripts/sdpd-resolve.mjs <vault-dir> [--out <path>]
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 
 const args = process.argv.slice(2);
 const vaultDir = args[0];
@@ -107,6 +107,7 @@ for (const op of resolved) {
   proxy[pathToProxyKey(op.path)] = { target: op.target, changeOrigin: true };
 }
 
+mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(proxy, null, 2) + '\n');
 
 console.log(`Resolved ${resolved.length} operations -> ${outPath}`);
