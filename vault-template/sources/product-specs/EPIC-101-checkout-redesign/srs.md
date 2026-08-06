@@ -8,7 +8,7 @@ tags: [checkout, orders, architecture]
 
 # SRS: Checkout & Order Management (EPIC-101)
 
-Derived from [[prd]] (this epic's PRD). Where the PRD says *what* and *why*, this says *which components, which interfaces, which API surface* — the input the tech lead uses to write `sources/contracts/openapi.yaml`. Story tickets are split along the boundaries drawn here, not around them.
+Derived from [[EPIC-101-checkout-redesign/prd]] (this epic's PRD). Where the PRD says *what* and *why*, this says *which components, which interfaces, which API surface* — the input the tech lead uses to write `sources/contracts/openapi.yaml`. Story tickets are split along the boundaries drawn here, not around them.
 
 ## Components
 
