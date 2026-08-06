@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: Checkout & Orders
+  version: 1.0.0
+  description: >
+    Worked example contract for the SDPD vault template. See
+    sources/product-specs/prd-checkout.md for intent and
+    sources/decisions/adr-0001-contract-first.md for why this exists
+    before any implementation.
+
+paths:
+  /checkout:
+    post:
+      operationId: createCheckout
+      summary: Convert a cart into an order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cartItems, email]
+              properties:
+                cartItems:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [sku, quantity]
+                    properties:
+                      sku: { type: string }
+                      quantity: { type: integer, minimum: 1 }
+                email:
+                  type: string
+                  format: email
+      responses:
+        '201':
+          description: Order created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: Empty cart or missing required field.
+
+  /orders:
+    get:
+      operationId: listOrders
+      summary: List the current customer's orders.
+      responses:
+        '200':
+          description: Orders belonging to the caller, possibly empty.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Get a single order.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The order.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404':
+          description: Order does not exist, or does not belong to the caller.
+
+  /orders/{orderId}/cancel:
+    post:
+      operationId: cancelOrder
+      summary: Cancel a pending order.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Order cancelled.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404':
+          description: Order does not exist, or does not belong to the caller.
+        '409':
+          description: Order is not in a cancellable state.
+
+components:
+  schemas:
+    Order:
+      type: object
+      required: [orderId, status, cartItems, email]
+      properties:
+        orderId: { type: string }
+        status:
+          type: string
+          enum: [pending, shipped, cancelled]
+        cartItems:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string }
+              quantity: { type: integer }
+        email: { type: string, format: email }

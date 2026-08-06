@@ -1,0 +1,6 @@
+{
+  "createCheckout": { "state": "live", "verified": "2026-08-06" },
+  "listOrders": { "state": "implemented" },
+  "getOrder": { "state": "mocked" },
+  "cancelOrder": { "state": "mocked" }
+}

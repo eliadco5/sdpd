@@ -1,0 +1,4 @@
+{
+  "staging": "https://api-staging.internal",
+  "dev": "https://api-dev.internal"
+}

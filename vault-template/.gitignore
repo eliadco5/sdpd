@@ -1,0 +1,9 @@
+# Obsidian per-vault churn — not shared conventions, just local session state
+.obsidian/workspace.json
+.obsidian/workspaces.json
+
+# Local readiness resolution — differs per developer/branch/VM, never shared
+.sdpd/local.json
+
+# Optional derived graph output (e.g. from a graphify spike) — regenerable, not source
+graph/
