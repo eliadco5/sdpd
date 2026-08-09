@@ -7,7 +7,7 @@ Fill in the variables below for this repo, then delete this line.
 ```
 {{VAULT_PATH}}   e.g. ../sdpd-vault              (multi-repo feature: sibling checkout)
                  or   sdpd/vault                  (single-repo feature: subfolder of this repo)
-{{ROLE}}         frontend | backend | infra | qa
+{{ROLE}}         frontend | backend | infra | qa | interfaces
 {{MOCK_PORT}}    e.g. 4010   (frontend only)
 ```
 
@@ -22,7 +22,7 @@ The scripts (`sdpd-resolve`, `sdpd-fetch`, `check-coverage`) take the vault as a
    `@{{VAULT_PATH}}/sources/contracts/readiness.json`
    If the operation isn't `live`, treat it as mocked — don't debug a mock response as if it were a backend defect.
 4. If the work you're asked to do requires the contract to change shape, **stop and say so.** The contract changes first, in the vault, in the open — never implicitly, never just in this repo to make something compile.
-5. Never edit anything under `{{VAULT_PATH}}/sources/`. That includes `readiness.json` — flip readiness only through whatever your team's declared process is (a script, a PR, a CI gate), never as a side effect of finishing other work.
+5. Never edit anything under `{{VAULT_PATH}}/sources/`. That includes `readiness.json` and any `external/*.readiness.json` — those are flipped by a human or a script your team runs deliberately, never by you. Your obligation when work is done is to **report** it ("getOrder is complete and passing its STD scenarios — ready to flip to `live`"), not to flip it yourself.
 
 The rule isn't "don't be creative." It's that your creativity ends at the contract boundary — anything inside it is yours, anything that would cross it needs a human or a spec change first.
 
@@ -35,13 +35,20 @@ The rule isn't "don't be creative." It's that your creativity ends at the contra
 
 **If backend:**
 - Implement routes to match the contract exactly — same paths, same operationIds, same schemas. A route that almost matches is a bug, not a close-enough implementation.
-- When an endpoint is functionally complete, mark it `implemented` in `readiness.json`. Only mark it `live` once it's been verified against the contract (manually, or via a CI conformance run) — `implemented` and `live` are different claims; don't collapse them.
+- When an endpoint is functionally complete and passing its STD scenarios, report it as ready for `implemented`, then report it again as ready for `live` once verified against the contract (manually, or via a CI conformance run) — `implemented` and `live` are different claims; don't collapse them, and don't flip either yourself (see Critical Boundary 5).
 
 **If infra:**
 - Own the shared environments listed in `{{VAULT_PATH}}/sources/contracts/environments.json`. Changes to those base URLs are infra's call, not something to patch around in a consuming repo.
 
 **If qa:**
 - Write and automate tests from `{{VAULT_PATH}}/sources/testing-specs/<EPIC-KEY-slug>/std.md`, not from the implementation. If a test needs behavior the STD doesn't describe, that's a gap in the STD to raise, not a detail to infer.
+
+**If interfaces:**
+- You own the boundary between our system and a third-party API we don't control. That API's contract is fundamentally different from ours: it's not a commitment anyone on this team made, it's an **observation** of what a vendor currently does, transcribed into `{{VAULT_PATH}}/sources/contracts/external/*.openapi.yaml` with a provenance stamp. It carries no guarantee of staying accurate — the vendor can change it without anyone here doing anything.
+- You may decide alone: the adapter's internals, the stub/sandbox server's implementation, retry/timeout/idempotency-key mechanics, and vendor-error-code → our-error-code mapping when the SRS specifies the mapping.
+- You must escalate, never resolve silently: any discrepancy you notice between `{{VAULT_PATH}}/sources/reference/` (the vendor's actual docs) and the transcribed contract — do not "fix" the transcription yourself, that's a `sources/` edit and needs the same human/PR process as any other. Also escalate anything that would require *our* `openapi.yaml` to change, and any outbound network call beyond the agreed stub/sandbox.
+- Readiness for external operations uses a different vocabulary than ours (`counterparty: stubbed|sandbox|production`, plus `descriptionVerified`) — see `external/*.readiness.json`. The safety default is inverted from our own: never resolve to `production` without an explicit, deliberate local opt-in.
+- **Vendor vocabulary must not leak across the adapter.** Our domain objects (e.g. `Order`) never contain a vendor-specific field name (e.g. no `payment_intent_id`) — translate at the adapter boundary, every time.
 
 ## Optional: Hard Enforcement via Hook
 

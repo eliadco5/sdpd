@@ -1,0 +1,46 @@
+filters:
+  and:
+    - file.ext == "md"
+
+views:
+  - type: table
+    name: All Pages
+    order:
+      - file.name
+      - type
+      - sdpd-layer
+      - status
+      - updated
+      - tags
+
+  - type: table
+    name: Sources (normative)
+    filters:
+      and:
+        - sdpd-layer == "source"
+    order:
+      - file.name
+      - type
+      - status
+      - updated
+
+  - type: table
+    name: Wiki (derived)
+    filters:
+      and:
+        - sdpd-layer == "wiki"
+    order:
+      - file.name
+      - type
+      - status
+      - sources
+
+  - type: table
+    name: ADRs
+    filters:
+      and:
+        - type == "adr"
+    order:
+      - file.name
+      - status
+      - updated
