@@ -158,3 +158,19 @@ Contract-first API design isn't new — this borrows from long-standing API-firs
 6. As backend finishes each endpoint, flip it to `implemented`, then `live` once verified — commit the change and let the others pull it with `sdpd fetch`.
 7. Any time reality needs to diverge from the contract, change the contract first — in the open, before the code that depends on the change.
 8. Let the wiki accumulate as sources do; don't force it before there's anything to synthesize.
+
+## 11. Hosting the Vault, and Opening It in Obsidian
+
+Everything in §4–§7 is plain git plus plain markdown/JSON — it doesn't care what hosts it. Two practical notes for actually standing this up across real, separate machines.
+
+**Hosting.** The vault is a git repo like any other; put it wherever your team already hosts code — GitHub, GitLab, an internal server. For a multi-repo feature (§4's "own sibling repo" case), that typically means one extra repo per feature or per long-lived vault, e.g.:
+
+```
+gh repo create your-org/feature-vault --private
+git -C vault-template remote add origin git@github.com:your-org/feature-vault.git
+git -C vault-template push -u origin main
+```
+
+Each consuming repo's `CLAUDE.md` still just sets `{{VAULT_PATH}}` — nothing else changes whether that path resolves to a sibling folder on one machine or a fresh `git clone` on someone else's. The one thing that must be genuinely reachable across machines is `sources/contracts/environments.json` — its URLs need to point at a real shared host (`https://api-dev.your-org.internal`), not `localhost`, or the `shared` rung of `sdpd-resolve`'s fallback order silently never succeeds for anyone but the person who wrote it.
+
+**Obsidian.** `vault-template/.obsidian/` ships a minimal starter config — `graph.json` colors `sources/` and `wiki/` differently at a glance, and `bases/all-pages.base` gives a sortable, filterable table view of every page by `type`/`sdpd-layer`/`status` (Bases is core in current Obsidian, no plugin needed). Open any vault clone as a folder in Obsidian and both are there immediately. The `.gitignore` already excludes only `.obsidian/workspace.json`/`workspaces.json` (per Obsidian's own guidance — those churn on every file open and aren't shared conventions); everything else in `.obsidian/` is meant to travel with the vault and render the same way for everyone who opens it.
