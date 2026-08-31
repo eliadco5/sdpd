@@ -4,6 +4,8 @@
 
 > The contract is the single source of truth. Everyone — human or AI — builds against it, not against each other.
 
+**Scope note:** this repo is the methodology plus a small (~300-line), dependency-free reference implementation and one worked example (`EPIC-101-checkout-redesign`). The doctrine is the product; the scripts exist to make the doctrine concrete, not to be the only valid implementation of it — see §12 for where the reference tooling is known to be thin.
+
 ---
 
 ## 1. The Problem
@@ -29,6 +31,7 @@ The contract isn't documentation of what was built. It's a commitment about what
 3. **Agents are treated as team members, not tools.** An AI coding agent working in a repo needs the same boundary a new hire needs: what it owns, what it must not touch, and where to go when the spec doesn't cover its case.
 4. **Parallel by default, sequential only by necessity.** Any two workstreams that both depend only on the contract — not on each other — should run at the same time.
 5. **Drift is a bug.** If backend and frontend disagree about a payload shape, that's not a bug in one of them — it's a bug in the process that let them build without checking the same contract.
+6. **Every workstream must be able to prove itself end-to-end.** A workstream that can only validate its own layer hasn't been de-risked by the contract, only unblocked by it — the mock made it *possible* to keep moving, not *proof* that the pieces will click together. How this shapes the way work gets split is §5.5.
 
 ## 4. The SDPD Vault
 
@@ -60,7 +63,7 @@ sdpd-vault/
     └── overview.md, and whatever else compounds as sources accumulate
 ```
 
-Product work usually arrives as an **epic** (a Jira epic, one PRD) that the dev team splits into several **story tickets** — often a backend story, a frontend story, sometimes more. `product-specs/` and `testing-specs/` are scoped **per epic** because that's genuinely what a PRD and its SRS are; several epics are often in flight at once, and each needs its own PRD/SRS pair without colliding.
+Product work usually arrives as an **epic** (a Jira epic, one PRD) that the dev team splits into several **story tickets** (§5.5 covers how SDPD recommends cutting those). `product-specs/` and `testing-specs/` are scoped **per epic** because that's genuinely what a PRD and its SRS are; several epics are often in flight at once, and each needs its own PRD/SRS pair without colliding.
 
 `contracts/` stays flat and global on purpose: it's the one place every epic's proposed interface changes land, so if two epics in flight touch the same endpoint, that surfaces as a shared review instead of two contract files silently diverging. Story tickets themselves live in Jira — don't duplicate them into the vault, same principle as not duplicating git history (§5).
 
@@ -72,7 +75,7 @@ Product work usually arrives as an **epic** (a Jira epic, one PRD) that the dev 
 | ADRs | `sources/decisions/` | Whoever made the call | Whole team, continuously |
 | Wiki pages | `wiki/` | The LLM, from the sources above | Anyone orienting themselves — never for compliance (see §6) |
 
-**A sizing note, so this doesn't read as more ceremony than it is:** the wiki layer starts paying for itself above roughly 15–20 sources, three-plus teams, or a couple of months of project age — where "where did we land on X" becomes a real question. Below that, the vault is just `sources/` plus a one-page `wiki/overview.md`, and that's fine. The rule that matters from day one is the boundary in §9, not a populated wiki.
+**A sizing note, so this doesn't read as more ceremony than it is:** the wiki layer starts paying for itself above roughly 15–20 sources, three-plus teams, or a couple of months of project age — where "where did we land on X" becomes a real question. Below that, the vault is just `sources/` plus a one-page `wiki/overview.md`, and that's fine. The rule that matters from day one is the contract boundary in §8, not a populated wiki.
 
 ## 5. The Lifecycle
 
@@ -83,12 +86,20 @@ Product delivers a PRD at the **epic** level — what's being built and why. It 
 The SRS gets translated into engineering schema: the contract (`sources/contracts/openapi.yaml` — flat and global, shared across every epic in flight) and the test design (`sources/testing-specs/<EPIC-KEY-slug>/std.md`). Every new or changed `operationId` gets seeded into `readiness.json` at `mocked`. This is the one deliberately sequential step in SDPD — everything after it fans out in parallel, one story ticket per developer, branching from the same contract.
 
 **Step 3 — Local Sync & Parallel Execution (Day 1 afternoon onward)**
-Every developer branches (e.g. `feature/JIRA-XXX`) and pulls the current vault state, working independently against it:
-- **Frontend** points its API client at locally-resolved routing generated from the contract (e.g. Prism-backed mocks by default) and builds against that as if it were production.
-- **Backend** implements routes to match the same contract, on their own story's slice of it.
-- **QA** writes and automates tests straight from the STD, without waiting for either side to finish.
+Every developer branches (e.g. `feature/JIRA-XXX`) and pulls the current vault state, working independently against it. Each story owns a disjoint set of `operationId`s **end-to-end** — its own UI, its own route implementation, its own STD scenarios automated and green before the PR is done — and resolves every operation it doesn't own to mock, per §7. A story is never "the frontend for this feature" or "the backend for this feature"; it's "checkout" or "order cancellation," built through every layer it touches.
 
-Anything outside a developer's own story's operationIds resolves to mock, so nobody blocks on a teammate's unfinished ticket. The contract removes the *blocking*. It does not remove the question of whether a given endpoint is real yet — that's a separate concern, covered in §7.
+Anything outside a developer's own story's operationIds resolves to mock, so nobody blocks on a teammate's unfinished ticket. The contract removes the *blocking*. It does not remove the question of whether a given endpoint is real yet — that's a separate concern, covered in §7. Resolve-with-fallback matters *more* under this cut, not less: it's what lets a story run and validate itself end-to-end on day one, before any of its neighbors land.
+
+**Step 4 — Seam Tickets (ongoing, whenever a new shared seam appears)**
+Step 2 makes the epic-wide contract translation the one deliberately sequential step *before* the fan-out. But a story sometimes discovers mid-epic that it needs a seam — a new `operationId`, a changed shape — that other in-flight stories will also depend on. That discovery is never folded into the discovering story's own branch. It becomes its own small, serial ticket: the contract addition, its readiness seed, its STD rows — nothing else — and it blocks every story that consumes the seam until it lands. This is Critical Boundary 4 in `consumer-rules/CLAUDE.md` ("stop and say so") given a concrete next action instead of just a stop.
+
+### 5.5 Choosing the Cut
+
+§5's steps assume the default cut below. It's worth naming explicitly, because the obvious way to split a feature — one lane per layer — is usually the wrong one once agents are involved.
+
+- **Default: capability slices.** One story owns a disjoint set of `operationId`s end-to-end (UI + route + STD scenarios for those operations), same rule the SRS already uses ("no two stories touch the same operationId") — it just now cuts vertically instead of by layer. Each slice can prove itself correct on its own, against the contract and its own STD scenarios, without waiting for a sibling slice to land.
+- **Fallback: layer split** (backend story / frontend story / infra story), for teams where ownership genuinely is one layer per team — separate repos, separate on-call, a backend team that doesn't touch frontend code. Use it deliberately, not by default, and be honest about its cost: each lane only proves its own layer; end-to-end correctness is discovered at integration, not before it.
+- **Anti-pattern: QA as its own parallel lane.** Writing the STD up front stays QA's job (it's a source, authored before the fan-out per Step 2). *Automating* a scenario against a live implementation belongs to the slice that owns the operation — a slice's PR isn't done until its own STD scenarios are green. A separate QA lane that automates everyone's scenarios means nothing gates any slice until QA catches up, which quietly reintroduces the sequential handoff SDPD exists to remove.
 
 ## 6. Orientation vs. Compliance
 
@@ -111,6 +122,13 @@ The contract tells you the *shape* of an endpoint. It says nothing about whether
 | Lives in | The vault, travels with git | A local, gitignored file — never committed |
 
 Conflating these two is where "mock vs. real" setups usually break down, especially once a team isn't all on one machine: an endpoint can be verified-done on `main` while your VM still needs a mock because it can't reach any backend. The vault only ever records the shared fact — `sources/contracts/readiness.json`, keyed by `operationId`, with states `mocked → implemented → live`. What each developer's machine actually talks to is resolved locally, in order: a local override (I'm running that service myself) → a branch preview, if one's deployed → a shared environment → the mock, which is always the final fallback. An endpoint that isn't `live` in the vault resolves to mock regardless of what's reachable — readiness is declared before it's trusted.
+
+**Two ways to declare it.** Either way, the shape of `readiness.json` and the fallback order above are unchanged — only *who writes the file* differs:
+
+- **Declared (default).** A human flips the state after verifying an endpoint against the contract, and commits it — same as always. This is the only mode that costs nothing on day one: it needs no conformance tests, no CI wiring, just a person willing to flip a value once they've checked it.
+- **Derived (opt-in).** A team with STD scenarios tagged with stable IDs (`STD-101-createCheckout-01`, …) and a CI conformance run can compute `readiness.json` from that run instead of hand-editing it: all of an operation's scenario IDs passing on `main` → `live`; some present but not all passing → `implemented`; none → `mocked`. Nobody hand-edits, and nobody self-certifies their own work into `live` — the reference implementation of this is `scripts/sdpd-readiness.mjs`.
+
+Either mode, every entry should carry an **`evidence`** field recording what backs the state — `{ "commit": "...", "run": "...", "at": "2026-08-30" }` — so a flip is auditable regardless of whether a human or a pipeline wrote it. A hand-flipped file without evidence is a claim; with it, it's a checkable claim.
 
 Pulling the vault (`sdpd fetch` in the reference tooling) is what closes the loop: it diffs the readiness manifest, tells you what flipped (`createCheckout: mocked → live`), and regenerates your local routing so exactly the endpoints that are ready get proxied to something real. Nothing auto-switches mid-session — you see the diff, then restart.
 
@@ -136,7 +154,9 @@ FRONTEND ENVIRONMENT:
 - Mock responses are treated as ground truth for anything not yet live.
 ```
 
-The `@../` syntax imports the file into context; Claude Code will prompt for trust on first use since it reaches outside the project root, and `--add-dir` can grant standing access to the vault if you'd rather not be asked each time. Prose is enough for most teams. For a harder guarantee, a `PreToolUse` hook can block an `Edit`/`Write` call outright until the contract has actually been read in-session — see `consumer-rules/` for a documented, opt-in example. Most teams won't need it; it's there for the ones who do.
+The `@../` syntax imports the file into context; Claude Code will prompt for trust on first use since it reaches outside the project root, and `--add-dir` can grant standing access to the vault if you'd rather not be asked each time. Prose is enough for most teams.
+
+**CI, not the hook, is the enforcement point.** `check-coverage` (see `scripts/`, wired up for this repo's own vault in `.github/workflows/vault-ci.yml`) running on every PR — every contract operation has an STD scenario, every operation has a readiness seed — is the actual wall; nothing merges past it. A `PreToolUse` hook that blocks `Edit`/`Write` until the contract has been read in-session is a fast *local* feedback loop that catches the mistake before a PR even exists — see `consumer-rules/` for a documented, opt-in example — but it's a convenience layered on top of the CI gate, not a substitute for it. Most teams won't need the hook; every team adopting SDPD needs the CI gate.
 
 The rule isn't "don't be creative." It's "your creativity ends at the contract boundary — anything inside it is yours, anything that would cross it needs a human or a spec change first."
 
@@ -146,7 +166,7 @@ Contract-first API design isn't new — this borrows from long-standing API-firs
 
 - **Agent speed outpaces coordination speed.** A team of agents can produce five divergent implementations of an under-specified feature before a human would have finished the first one. The contract is what keeps that speed pointed in one direction.
 - **Agents need an explicit boundary, not tribal knowledge.** A human engineer picks up unwritten conventions by osmosis over months. An agent starts every session with none of that context and will fill the gap with a plausible guess unless the boundary is written down somewhere it's forced to read.
-- **Parallelism only pays off if the pieces actually fit.** Running four agents at once across four repos is only a win if their outputs converge without a manual integration pass. That convergence is exactly what the contract buys you.
+- **Parallelism only pays off if the pieces actually fit.** Running four agents at once across four slices is only a win if their outputs converge without a manual integration pass. That convergence is exactly what the contract buys you — and each agent proving its own slice end-to-end (§5.5) is what makes "converge" a checked fact instead of a hope.
 
 ## 10. Getting Started
 
@@ -154,9 +174,9 @@ Contract-first API design isn't new — this borrows from long-standing API-firs
 2. When a new epic arrives, write its PRD and SRS into `sources/product-specs/<EPIC-KEY-slug>/`.
 3. Translate the SRS into the shared contract in `sources/contracts/openapi.yaml` before any implementation work begins — the SRS's component/interface boundaries are what the epic's story tickets should follow. Seed `readiness.json` with every new or changed operation set to `mocked`, and write that epic's scenarios into `sources/testing-specs/<EPIC-KEY-slug>/std.md`.
 4. Add a `CLAUDE.md` to each consuming repo (see `consumer-rules/`) pointing its agent at the contract and readiness manifest, and defining what it may and may not decide on its own.
-5. Each developer branches per story ticket and starts at the same time, against the same contract — backend, frontend, and QA in parallel, each blocked only on the contract, never on each other.
-6. As backend finishes each endpoint, flip it to `implemented`, then `live` once verified — commit the change and let the others pull it with `sdpd fetch`.
-7. Any time reality needs to diverge from the contract, change the contract first — in the open, before the code that depends on the change.
+5. Cut stories along capability boundaries by default — disjoint `operationId`s, each owned end-to-end (§5.5) — and have each developer branch per story and start at the same time against the same contract, blocked only on the contract, never on each other.
+6. Pick a readiness mode (§7): declared (a human flips `implemented` → `live` once verified and commits it) or derived (CI computes it from a tagged conformance run). Either way, wire `check-coverage` into CI (§8) so every contract operation has an STD scenario and a readiness seed before a PR can merge.
+7. Any time reality needs to diverge from the contract, change the contract first — in the open, before the code that depends on the change; if a new shared seam appears mid-epic, cut it as its own seam ticket (§5 Step 4) rather than folding it into the story that found it.
 8. Let the wiki accumulate as sources do; don't force it before there's anything to synthesize.
 
 ## 11. Hosting the Vault, and Opening It in Obsidian
@@ -174,3 +194,13 @@ git -C vault-template push -u origin main
 Each consuming repo's `CLAUDE.md` still just sets `{{VAULT_PATH}}` — nothing else changes whether that path resolves to a sibling folder on one machine or a fresh `git clone` on someone else's. The one thing that must be genuinely reachable across machines is `sources/contracts/environments.json` — its URLs need to point at a real shared host (`https://api-dev.your-org.internal`), not `localhost`, or the `shared` rung of `sdpd-resolve`'s fallback order silently never succeeds for anyone but the person who wrote it.
 
 **Obsidian.** `vault-template/.obsidian/` ships a minimal starter config — `graph.json` colors `sources/` and `wiki/` differently at a glance, and `bases/all-pages.base` gives a sortable, filterable table view of every page by `type`/`sdpd-layer`/`status` (Bases is core in current Obsidian, no plugin needed). Open any vault clone as a folder in Obsidian and both are there immediately. The `.gitignore` already excludes only `.obsidian/workspace.json`/`workspaces.json` (per Obsidian's own guidance — those churn on every file open and aren't shared conventions); everything else in `.obsidian/` is meant to travel with the vault and render the same way for everyone who opens it.
+
+## 12. Limitations & Known Sharp Edges
+
+Stated plainly, so adopting this doesn't come with surprises later:
+
+- **The OpenAPI parsing is a regex, not a parser.** `sdpd-resolve` and `check-coverage` extract paths and `operationId`s with line-based regex over a single file — deliberately, to stay dependency-free (see `scripts/`). It does not follow `$ref`, does not handle a multi-file contract split across `$ref: './orders.yaml'`, and will silently miss operations defined in a structure it doesn't expect. Keep the contract in one file, or extend the extraction before splitting it.
+- **Reachability probing is a bare `fetch`, not a health check.** `sdpd-resolve`'s `isReachable` treats any response — including a `404` or a login redirect — as "reachable" and resolves to it. A shared environment that's up but returning errors for the wrong reason will look `live` to the resolver.
+- **Derived readiness is only as honest as the STD tagging discipline.** The coverage gate proves a scenario *exists* and, in `--tests` mode, that some test claims its ID — it cannot judge whether that test actually exercises the behavior the STD scenario describes. Reviewer attention on STD quality stays load-bearing in either readiness mode.
+- **Disjoint-capability cutting isn't always possible.** Two stories sometimes need the same operation to grow in different directions in the same window. The answer is a blocking edge (one story waits) or a seam ticket (§5 Step 4) that splits the shared growth out — not a merge dance across two branches editing the same contract entry.
+- **One worked example, no production usage.** `EPIC-101-checkout-redesign` demonstrates the pattern; it hasn't been run at scale across multiple concurrent epics or a large team. Treat the methodology as a starting doctrine to adapt, not a finished, battle-tested system.

@@ -18,24 +18,28 @@ Derived from [[EPIC-101-checkout-redesign/prd]] (this epic's PRD). Where the PRD
 
 ## API Surface for This Epic
 
-| Operation | Method + Path | Owning story area |
+| Operation | Method + Path | Owning slice |
 |---|---|---|
-| `createCheckout` | `POST /checkout` | Backend: Order Service |
-| `listOrders` | `GET /orders` | Backend: Order Service |
-| `getOrder` | `GET /orders/{orderId}` | Backend: Order Service |
-| `cancelOrder` | `POST /orders/{orderId}/cancel` | Backend: Order Service |
+| — | `Order` schema (shared) | Slice 0 — seam |
+| `createCheckout` | `POST /checkout` | Slice A — create |
+| `listOrders` | `GET /orders` | Slice B — view |
+| `getOrder` | `GET /orders/{orderId}` | Slice B — view |
+| `cancelOrder` | `POST /orders/{orderId}/cancel` | Slice C — cancel |
 
-All four are net-new for this epic — see `sources/contracts/openapi.yaml` for the formal shapes and `sources/contracts/readiness.json` for current build status.
+All four operations are net-new for this epic — see `sources/contracts/openapi.yaml` for the formal shapes and `sources/contracts/readiness.json` for current build status.
 
 ## Story Split
 
-This SRS is written so the epic can be broken into disjoint story tickets without any two touching the same operationId:
+This SRS is written so the epic can be broken into disjoint story tickets without any two touching the same operationId — cut vertically, by capability, not by layer (see root `README.md` §5.5 for why):
 
-- **Backend story** — implement all four operations against the contract above.
-- **Frontend story** — build the Checkout UI against the same contract, routed through the vault's readiness/mock resolution (see root `README.md` §7) so it never blocks on the backend story finishing.
-- **QA story** — automate `sources/testing-specs/EPIC-101-checkout-redesign/std.md` against the contract, independent of either.
+- **Slice 0 — seam (serial, blocks A–C).** The shared `Order` schema in the contract, plus `readiness.json` seeded at `mocked` for all four operations. Nothing in A–C starts until this lands, per README §5 Step 2 — it's the one deliberately sequential step, not a fourth parallel lane.
+- **Slice A — create.** `createCheckout` end to end: the checkout form, the route implementation, and the three `createCheckout` scenarios in `std.md` automated and green. Everything else it touches (`listOrders`, `getOrder`, `cancelOrder`) resolves to mock.
+- **Slice B — view.** `listOrders` + `getOrder` end to end: the order list and detail views, both routes, and their STD scenarios. `createCheckout` and `cancelOrder` resolve to mock.
+- **Slice C — cancel.** `cancelOrder` end to end: the cancel action, the route, and its three STD scenarios. The other three operations resolve to mock.
 
-If a future epic needs to touch any of these same four operations, that's a signal for a shared review before either epic's contract changes ship — not something to resolve by editing the contract from two branches independently.
+Each slice is a full vertical: UI through route through its own tests. None of them is "the frontend story" or "the backend story" — QA's job here is authoring `std.md` before the fan-out (already done, in Slice 0's wake), not automating everyone else's scenarios in a fourth lane. Automating a slice's scenarios is that slice's job, and its PR isn't done until they're green.
+
+If a future epic needs to touch any of these same four operations, that's a signal for a shared review before either epic's contract changes ship — not something to resolve by editing the contract from two branches independently. If a slice discovers mid-build that it needs a *new* seam none of A–C anticipated, that's a new seam ticket (README §5 Step 4), not a change folded into that slice's own branch.
 
 ## Non-Functional Notes
 

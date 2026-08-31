@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Pulls the vault, diffs readiness.json against the last-seen snapshot,
-// prints the human-readable delta, and re-runs sdpd-resolve so local routing
-// reflects what just changed. Nothing auto-switches mid-session — this
-// prints what changed and regenerates config; you still restart your
-// dev server yourself.
+// prints the human-readable delta, and re-runs sdpd-resolve so
+// .sdpd/resolved.json reflects what just changed. Nothing auto-switches
+// mid-session — this prints what changed and regenerates the neutral
+// resolve output; if your stack needs an adapter (e.g. Vite, see
+// scripts/adapters/vite-proxy.mjs) run that next, then restart your dev
+// server yourself.
 //
 // Usage: node scripts/sdpd-fetch.mjs <vault-dir>
 
@@ -49,8 +51,8 @@ mkdirSync(dirname(snapshotPath), { recursive: true });
 writeFileSync(snapshotPath, JSON.stringify(current, null, 2) + '\n');
 
 if (changes.length > 0) {
-  console.log('\nRegenerating local routing...');
+  console.log('\nRegenerating .sdpd/resolved.json...');
   const resolveScript = join(dirname(fileURLToPath(import.meta.url)), 'sdpd-resolve.mjs');
   execSync(`node "${resolveScript}" "${vaultDir}"`, { stdio: 'inherit' });
-  console.log('\nRouting regenerated. Restart your dev server to pick up the change.');
+  console.log('\nResolved. If your stack needs an adapter (e.g. "node scripts/adapters/vite-proxy.mjs"), run it now, then restart your dev server to pick up the change.');
 }

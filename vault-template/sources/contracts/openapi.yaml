@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: >
     Worked example contract for the SDPD vault template. See
-    sources/product-specs/prd-checkout.md for intent and
+    sources/product-specs/EPIC-101-checkout-redesign/prd.md for intent and
     sources/decisions/adr-0001-contract-first.md for why this exists
     before any implementation.
 

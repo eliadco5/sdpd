@@ -1,0 +1,4 @@
+# Local resolve state when running the reference scripts from this repo's
+# root (e.g. while testing them against vault-template/) — machine- and
+# branch-specific, never shared. See consumer-rules/CLAUDE.md and README §7.
+.sdpd/

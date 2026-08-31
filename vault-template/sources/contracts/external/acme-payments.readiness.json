@@ -1,0 +1,10 @@
+{
+  "createPaymentIntent": {
+    "counterparty": "sandbox",
+    "descriptionVerified": "2026-08-30"
+  },
+  "getPaymentIntent": {
+    "counterparty": "sandbox",
+    "descriptionVerified": "2026-08-30"
+  }
+}

@@ -1,0 +1,45 @@
+# CI is the enforcement point for SDPD (README §8), not the opt-in
+# PreToolUse hook in consumer-rules/CLAUDE.md. This workflow gates the vault
+# itself: every contract operation must have an STD scenario and a readiness
+# seed before a PR merges. Adapt the vault-dir input for your own layout —
+# this repo's own worked example lives at vault-template/.
+name: Vault CI
+
+on:
+  pull_request:
+    paths:
+      - 'vault-template/**'
+      - 'scripts/**'
+  push:
+    branches: [master]
+    paths:
+      - 'vault-template/**'
+      - 'scripts/**'
+
+jobs:
+  check-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # No dependencies to install — the core scripts are dependency-free by
+      # design (README §12). This is the required gate: every operation has
+      # an STD scenario (existence) and a readiness.json seed.
+      - name: Contract <-> STD coverage + readiness-seed check
+        run: node scripts/check-coverage.mjs vault-template
+
+      # Optional and clearly separate from the required gate above: an
+      # actual OpenAPI lint needs a real parser, which the core scripts
+      # deliberately don't ship (README §12) to stay dependency-free.
+      # Uncomment if your team wants schema-level linting in CI.
+      # - name: OpenAPI lint (optional, adds a dependency via npx)
+      #   run: npx --yes @redocly/cli lint vault-template/sources/contracts/openapi.yaml
+
+      # Optional derived-readiness wiring (README §7) — shown, not enabled,
+      # since it needs a real conformance-test report to point at. Teams
+      # using derived mode would run this on main after their STD conformance
+      # suite, and run the --check form on PRs that touch tests/contracts.
+      # - name: Derived readiness check
+      #   run: node scripts/sdpd-readiness.mjs vault-template --tests path/to/report.xml --check

@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: Acme Payments (external, transcribed)
+  version: v1
+  description: >
+    Third-party contract, not ours to change. Transcribed from
+    https://docs.acme-payments.example/v1/payment-intents on 2026-08-30 —
+    see sources/reference/acme-payments-api-notes.md for the vendor's own
+    description this was transcribed from, and provenance details. Any
+    discrepancy between this file and that page is escalated to a human,
+    never silently reconciled (vault-template/CLAUDE.md §1). This is an
+    observation of a vendor's API, not a commitment anyone here made.
+
+paths:
+  /v1/payment_intents:
+    post:
+      operationId: createPaymentIntent
+      summary: (Acme's own operation) Create a payment intent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency, payment_method]
+              properties:
+                amount: { type: integer, description: "Smallest currency unit, e.g. cents." }
+                currency: { type: string, description: "ISO 4217 lowercase, e.g. usd." }
+                payment_method: { type: string, description: "Vendor-issued token." }
+      responses:
+        '200':
+          description: Payment intent created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentIntent' }
+
+  /v1/payment_intents/{id}:
+    get:
+      operationId: getPaymentIntent
+      summary: (Acme's own operation) Retrieve a payment intent.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The payment intent.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentIntent' }
+
+components:
+  schemas:
+    PaymentIntent:
+      type: object
+      required: [payment_intent_id, status]
+      properties:
+        payment_intent_id:
+          type: string
+          description: Vendor identifier — never store this field name in our own Order model; the adapter maps it to paymentReference.
+        status:
+          type: string
+          enum: [requires_action, succeeded, failed]
+          description: Vendor's own vocabulary. Any value not in this enum is an escalation, not a guess.

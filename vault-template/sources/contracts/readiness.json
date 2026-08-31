@@ -1,5 +1,9 @@
 {
-  "createCheckout": { "state": "live", "verified": "2026-08-06" },
+  "createCheckout": {
+    "state": "live",
+    "verified": "2026-08-06",
+    "evidence": { "commit": "4e0b457", "run": "manual-verification", "at": "2026-08-06" }
+  },
   "listOrders": { "state": "implemented" },
   "getOrder": { "state": "mocked" },
   "cancelOrder": { "state": "mocked" }

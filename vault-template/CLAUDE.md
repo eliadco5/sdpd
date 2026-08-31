@@ -11,9 +11,10 @@ The non-negotiable: **`sources/` is truth, `wiki/` is your notes about the truth
 
 **Never:**
 - Edit any file under `sources/`.
-- Restate a payload shape, field name, field type, enum value, header, or status code in a wiki page. Link to the contract instead.
+- Restate a payload shape, field name, field type, enum value, header, or status code in a wiki page — for our own contract *or* a vendor's transcribed one under `sources/contracts/external/`. Link to the contract instead.
 - Answer an implementation question ("what does this endpoint accept?") from a wiki page.
-- Edit `sources/contracts/readiness.json` to make something appear ready. Readiness is declared by the people who did the work, not inferred by you.
+- Edit `sources/contracts/readiness.json` (or `external/*.readiness.json`) to make something appear ready. Readiness is declared by the people who did the work or computed by CI from their tests (§3) — never inferred by you.
+- Reconcile a discrepancy you notice between `sources/reference/` (a vendor's own docs) and `sources/contracts/external/` (our transcription of them) yourself. Flag it on the relevant wiki page and escalate to a human, same as any other source contradiction (§10) — it's a `sources/` edit either way.
 
 If a request would require any of the above, stop and say so — name the file, name why it's off-limits, and suggest the human update the source directly.
 
@@ -28,7 +29,14 @@ If someone asks a compliance question and the contract doesn't cover it: say the
 
 ## 3. Readiness Rule
 
-Before treating an endpoint as real, check `sources/contracts/readiness.json`. States are `mocked` (contract only) → `implemented` (built, not yet verified) → `live` (verified against the contract). If an endpoint isn't `live`, say so — don't debug a mock response as if it were a backend bug. Never edit this file yourself; it's updated by whoever did the implementation work, per `consumer-rules/CLAUDE.md`.
+Before treating an endpoint as real, check `sources/contracts/readiness.json`. States are `mocked` (contract only) → `implemented` (built, not yet verified) → `live` (verified against the contract). If an endpoint isn't `live`, say so — don't debug a mock response as if it were a backend bug.
+
+Two modes write this file, and both are equally off-limits to you:
+
+- **Declared** — a human flips the state after verifying against the contract, and commits it.
+- **Derived** — CI computes it from a conformance run against STD scenario IDs (`scripts/sdpd-readiness.mjs`) and commits it on `main`.
+
+Either mode, entries may carry an `evidence` field (`commit`/`run`/`at`) recording what backs the state — treat that as informational, never as something you add or infer yourself. Never edit this file yourself, in either mode; see `consumer-rules/CLAUDE.md` and root `README.md` §7.
 
 ## 4. Read Order
 
@@ -64,6 +72,8 @@ tags: [checkout, contract]
 ```
 
 Wikilinks inside frontmatter must be quoted (`"[[page]]"`) — Obsidian's YAML parser breaks on bare `[[...]]`. Once a property name is used with one type anywhere in the vault, it's that type everywhere — don't reuse `sources` as a plain string list on one page and a link list on another.
+
+`sdpd-layer` takes exactly two values across this vault: `source` (every file under `sources/`, including `sources/reference/` and `sources/contracts/external/`) and `wiki` (every file under `wiki/`). A page's `sdpd-layer` should match which side of the firewall (§1) it's actually on.
 
 ## 8. Citation Format
 

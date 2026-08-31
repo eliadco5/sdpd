@@ -1,0 +1,18 @@
+{
+  "name": "sdpd",
+  "version": "1.0.0",
+  "description": "Spec-Driven Parallel Development — reference tooling (dependency-free).",
+  "type": "module",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "bin": {
+    "sdpd": "scripts/sdpd.mjs"
+  },
+  "scripts": {
+    "sdpd": "node scripts/sdpd.mjs",
+    "sdpd:resolve": "node scripts/sdpd.mjs resolve",
+    "sdpd:fetch": "node scripts/sdpd.mjs fetch",
+    "sdpd:coverage": "node scripts/sdpd.mjs coverage",
+    "sdpd:readiness": "node scripts/sdpd.mjs readiness"
+  }
+}
