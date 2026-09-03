@@ -5,6 +5,7 @@ Catalog of every wiki page. Updated on every ingest — see `CLAUDE.md` §9. Rea
 ## Overview
 
 - [[overview]] — Checkout & Orders (EPIC-101): what the feature is, links to the contract, PRD, and SRS. Sources: 4.
+- [[bulk-order-management]] — Bulk Order Management (EPIC-102): bulk cancel + the `Order.cancelledAt` seam ticket against EPIC-101. Sources: 3.
 
 ## Entities
 
@@ -20,4 +21,4 @@ _(none yet)_
 
 ## Comparisons / Syntheses
 
-_(none yet)_
+- [[order-schema-evolution]] — cross-epic synthesis: why `Order` gained `cancelledAt`, citing both epics' SRS and adr-0004. Sources: 4.

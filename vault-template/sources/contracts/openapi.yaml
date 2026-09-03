@@ -6,7 +6,9 @@ info:
     Worked example contract for the SDPD vault template. See
     sources/product-specs/EPIC-101-checkout-redesign/prd.md for intent and
     sources/decisions/adr-0001-contract-first.md for why this exists
-    before any implementation.
+    before any implementation. Order.cancelledAt and bulkCancelOrders were
+    added by EPIC-102 — see sources/decisions/adr-0004-epic-102-order-seam.md
+    for why this is one file, not two epics silently diverging.
 
 paths:
   /checkout:
@@ -93,6 +95,40 @@ paths:
         '409':
           description: Order is not in a cancellable state.
 
+  /orders/bulk-cancel:
+    post:
+      operationId: bulkCancelOrders
+      summary: Cancel multiple orders in one call (EPIC-102).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderIds]
+              properties:
+                orderIds:
+                  type: array
+                  minItems: 1
+                  items: { type: string }
+      responses:
+        '200':
+          description: Per-order results — same array whether every order succeeded or not.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [orderId, status]
+                  properties:
+                    orderId: { type: string }
+                    status:
+                      type: string
+                      enum: [cancelled, already-shipped, not-found]
+        '400':
+          description: orderIds empty or missing.
+
 components:
   schemas:
     Order:
@@ -111,3 +147,13 @@ components:
               sku: { type: string }
               quantity: { type: integer }
         email: { type: string, format: email }
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Added by EPIC-102 (see adr-0004-epic-102-order-seam), additive
+            and optional so EPIC-101's four operations and their STD
+            scenarios are unchanged. Set by cancelOrder (EPIC-101) and
+            bulkCancelOrders (EPIC-102) alike; null until an order is
+            cancelled.

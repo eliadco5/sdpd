@@ -41,6 +41,8 @@ Each slice is a full vertical: UI through route through its own tests. None of t
 
 If a future epic needs to touch any of these same four operations, that's a signal for a shared review before either epic's contract changes ship — not something to resolve by editing the contract from two branches independently. If a slice discovers mid-build that it needs a *new* seam none of A–C anticipated, that's a new seam ticket (README §5 Step 4), not a change folded into that slice's own branch.
 
+This isn't hypothetical: [[EPIC-102-bulk-order-management/srs|EPIC-102]] later needed `Order` to grow a `cancelledAt` field. See [[adr-0004-epic-102-order-seam]] for how that collision was resolved as a seam ticket — this epic's four operations and STD scenarios needed no changes as a result.
+
 ## Non-Functional Notes
 
 - No new external dependencies.

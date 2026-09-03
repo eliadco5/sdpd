@@ -37,9 +37,27 @@ jobs:
       # - name: OpenAPI lint (optional, adds a dependency via npx)
       #   run: npx --yes @redocly/cli lint vault-template/sources/contracts/openapi.yaml
 
-      # Optional derived-readiness wiring (README §7) — shown, not enabled,
-      # since it needs a real conformance-test report to point at. Teams
-      # using derived mode would run this on main after their STD conformance
-      # suite, and run the --check form on PRs that touch tests/contracts.
-      # - name: Derived readiness check
-      #   run: node scripts/sdpd-readiness.mjs vault-template --tests path/to/report.xml --check
+  # Illustrative, not enabled — needs a real conformance-test report to point
+  # at. In Auto mode (README §7, the default) this is the *only* writer
+  # allowed to promote an operation to "live": an independent run against
+  # main, never the agent that built it. Recommended shape: open a bot PR
+  # with the computed change rather than pushing straight to main, so the
+  # "live" flip stays reviewed even though it's machine-computed.
+  # promote-live:
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/master'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #     - name: Run the real conformance suite against main
+  #       run: echo "run your STD conformance suite here, producing path/to/report.xml"
+  #     - name: Compute readiness from the independent run
+  #       run: node scripts/sdpd-readiness.mjs vault-template --tests path/to/report.xml --source ci --write
+  #     - name: Open a PR with the computed readiness change
+  #       uses: peter-evans/create-pull-request@v6
+  #       with:
+  #         title: 'readiness: promote from independent conformance run'
+  #         commit-message: 'readiness: promote from independent conformance run'
+  #         branch: readiness/auto-update

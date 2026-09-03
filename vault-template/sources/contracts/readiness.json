@@ -2,9 +2,13 @@
   "createCheckout": {
     "state": "live",
     "verified": "2026-08-06",
-    "evidence": { "commit": "4e0b457", "run": "manual-verification", "at": "2026-08-06" }
+    "evidence": { "source": "human", "commit": "4e0b457", "run": "manual-verification", "at": "2026-08-06" }
   },
-  "listOrders": { "state": "implemented" },
+  "listOrders": {
+    "state": "implemented",
+    "evidence": { "source": "agent", "commit": "aa9ba80", "run": "local", "at": "2026-09-03" }
+  },
   "getOrder": { "state": "mocked" },
-  "cancelOrder": { "state": "mocked" }
+  "cancelOrder": { "state": "mocked" },
+  "bulkCancelOrders": { "state": "mocked" }
 }

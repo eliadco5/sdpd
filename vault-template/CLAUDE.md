@@ -31,12 +31,12 @@ If someone asks a compliance question and the contract doesn't cover it: say the
 
 Before treating an endpoint as real, check `sources/contracts/readiness.json`. States are `mocked` (contract only) → `implemented` (built, not yet verified) → `live` (verified against the contract). If an endpoint isn't `live`, say so — don't debug a mock response as if it were a backend bug.
 
-Two modes write this file, and both are equally off-limits to you:
+Two modes write this file, and this file is off-limits to you (the wiki maintainer) either way:
 
-- **Declared** — a human flips the state after verifying against the contract, and commits it.
-- **Derived** — CI computes it from a conformance run against STD scenario IDs (`scripts/sdpd-readiness.mjs`) and commits it on `main`.
+- **Auto (default)** — split ownership. The implementing agent flips `mocked → implemented` itself on its own green local run; `implemented → live` is written only by an independent CI run or a human — never the agent that built the thing.
+- **Declared** — a human flips both transitions after verifying against the contract, and commits it.
 
-Either mode, entries may carry an `evidence` field (`commit`/`run`/`at`) recording what backs the state — treat that as informational, never as something you add or infer yourself. Never edit this file yourself, in either mode; see `consumer-rules/CLAUDE.md` and root `README.md` §7.
+Either mode, entries may carry an `evidence` field (`source`/`commit`/`run`/`at`) recording what backs the state — treat that as informational, never as something you add or infer yourself. Never edit this file yourself, in either mode — that's true of you specifically (the wiki maintainer); it is not a statement about whether an *implementing* agent may, which is governed by `consumer-rules/CLAUDE.md` and root `README.md` §7, not by this file.
 
 ## 4. Read Order
 
